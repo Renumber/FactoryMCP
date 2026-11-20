@@ -1,0 +1,24 @@
+{
+  "name": "factorymcp",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.6.5",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -n server,web -c cyan,magenta \"pnpm --filter @factorymcp/mcp-server dev\" \"pnpm --filter @factorymcp/web dev\"",
+    "build": "pnpm --filter @factorymcp/web build",
+    "start": "pnpm --filter @factorymcp/mcp-server start",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.7",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}

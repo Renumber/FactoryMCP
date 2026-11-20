@@ -1,0 +1,23 @@
+@import 'tailwindcss';
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family:
+    'Pretendard', 'Inter', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif;
+  color: var(--color-gray-100);
+  user-select: none;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-gray-700);
+  border-radius: 3px;
+}
