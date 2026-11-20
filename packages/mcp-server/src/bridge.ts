@@ -43,6 +43,7 @@ export class InMemoryWsBridge implements SessionBridge {
   attach(sessionId: string, socket: WebSocket, mcpUrl: string): void {
     const prev = this.sockets.get(sessionId);
     if (prev && prev !== socket) prev.close(4000, 'replaced by a newer connection');
+    this.sockets.delete(sessionId);
     this.sockets.set(sessionId, socket);
     this.send(socket, { type: 'hello', sessionId, mcpUrl });
 
@@ -71,8 +72,8 @@ export class InMemoryWsBridge implements SessionBridge {
 
   resolveSession(token: string | null): string | null {
     if (token) return token;
-    if (this.opts.allowSingleSessionFallback && this.sockets.size === 1) return [...this.sockets.keys()][0]!;
-    return null;
+    if (!this.opts.allowSingleSessionFallback) return null;
+    return [...this.sockets.keys()].at(-1) ?? null;
   }
 
   isConnected(sessionId: string): boolean {

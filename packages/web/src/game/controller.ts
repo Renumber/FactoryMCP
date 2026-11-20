@@ -33,7 +33,8 @@ export interface Toast {
 
 const SAVE_KEY = 'factorymcp.save.v1';
 const PLANS_KEY = 'factorymcp.plans.v1';
-const MAX_STEPS_PER_FRAME = 40;
+const MAX_CATCHUP_SECONDS = 2;
+const MAX_STEPS_PER_FRAME = MAX_CATCHUP_SECONDS * TICK_RATE * 4;
 
 type Listener = () => void;
 
@@ -56,7 +57,7 @@ export class GameController {
   private listeners = new Set<Listener>();
   private accumulator = 0;
   private lastFrame = 0;
-  private raf = 0;
+  private loopTimer: ReturnType<typeof setInterval> | undefined;
   private lastNotify = 0;
   private toastId = 1;
   private saveTimer: ReturnType<typeof setInterval> | undefined;
@@ -68,26 +69,23 @@ export class GameController {
 
   // ------------------------------------------------------------ lifecycle
 
+  /** Timer-driven rather than rAF so the factory keeps running while the player is in their agent window. */
   start(): void {
     this.lastFrame = performance.now();
-    const frame = (now: number) => {
-      this.tick(now);
-      this.raf = requestAnimationFrame(frame);
-    };
-    this.raf = requestAnimationFrame(frame);
+    this.loopTimer = setInterval(() => this.tick(performance.now()), 1000 / TICK_RATE);
     this.saveTimer = setInterval(() => this.save(), 10_000);
     window.addEventListener('beforeunload', this.save);
   }
 
   stop(): void {
-    cancelAnimationFrame(this.raf);
+    clearInterval(this.loopTimer);
     clearInterval(this.saveTimer);
     window.removeEventListener('beforeunload', this.save);
     this.save();
   }
 
   private tick(now: number): void {
-    const dt = Math.min(0.25, (now - this.lastFrame) / 1000);
+    const dt = Math.min(MAX_CATCHUP_SECONDS, (now - this.lastFrame) / 1000);
     this.lastFrame = now;
     if (this.speed > 0) {
       this.accumulator += dt * this.speed * TICK_RATE;

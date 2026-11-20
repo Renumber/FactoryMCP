@@ -15,6 +15,7 @@ const PROD = process.env.NODE_ENV === 'production';
 const PUBLIC_URL = process.env.PUBLIC_URL ?? `http://localhost:${PROD ? PORT : 5173}`;
 const DIST = resolve(fileURLToPath(new URL('.', import.meta.url)), '../../web/dist');
 
+/** Dev only: an MCP URL without ?session attaches to the most recently opened game tab. */
 const bridge = new InMemoryWsBridge({ allowSingleSessionFallback: !PROD });
 const app = new Hono();
 
