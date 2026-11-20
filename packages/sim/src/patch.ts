@@ -115,6 +115,13 @@ export function detectZonePorts(world: World, rect: Rect): ZonePort[] {
   return [...ports.values()].sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
+/** Changed entities whose footprint is not fully inside `rect`. */
+export function changesOutside(changes: PatchChanges, rect: Rect): EntitySummary[] {
+  return [...changes.added, ...changes.removed, ...changes.modified].filter(
+    (c) => !rectContainsRect(rect, footprint(c)),
+  );
+}
+
 export function makeZone(world: World, id: string, name: string, rect: Rect): Zone {
   return { id, name, x: rect.x, y: rect.y, w: rect.w, h: rect.h, ports: detectZonePorts(world, rect) };
 }

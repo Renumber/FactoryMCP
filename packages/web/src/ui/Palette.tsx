@@ -1,6 +1,6 @@
 import { ENTITY_DEFS, RECIPES, type EntityType, type RecipeId } from '@factorymcp/sim';
 import { useGame } from '../game/context.ts';
-import { recipeName } from './labels.ts';
+import { ENTITY_DESC, recipeName } from './labels.ts';
 
 const GROUPS: { title: string; types: EntityType[] }[] = [
   { title: '물류', types: ['belt', 'fast_belt', 'splitter', 'merger', 'tunnel_in', 'tunnel_out'] },
@@ -55,7 +55,7 @@ export function Palette() {
                   key={type}
                   disabled={!unlocked}
                   onClick={() => pick(type)}
-                  title={def.description}
+                  title={ENTITY_DESC[type]}
                   className={`rounded-md border px-1.5 py-2 text-[11px] leading-tight transition ${
                     active
                       ? 'border-indigo-400 bg-indigo-500/20 text-gray-100'

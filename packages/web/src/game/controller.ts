@@ -120,6 +120,26 @@ export class GameController {
     }
   };
 
+  // ------------------------------------------------------------------ hover
+
+  hover: { x: number; y: number; sx: number; sy: number } | null = null;
+  private hoverListeners = new Set<Listener>();
+  private hoverVersion = 0;
+
+  setHover(h: GameController['hover']): void {
+    if (h && this.hover && h.x === this.hover.x && h.y === this.hover.y && h.sx === this.hover.sx && h.sy === this.hover.sy) return;
+    this.hover = h;
+    this.hoverVersion++;
+    for (const fn of this.hoverListeners) fn();
+  }
+
+  subscribeHover = (fn: Listener): (() => void) => {
+    this.hoverListeners.add(fn);
+    return () => this.hoverListeners.delete(fn);
+  };
+
+  getHoverVersion = (): number => this.hoverVersion;
+
   // ---------------------------------------------------------- subscription
 
   subscribe = (fn: Listener): (() => void) => {
@@ -256,7 +276,7 @@ export class GameController {
     const plan = this.plans.find((p) => p.id === id);
     if (!plan) return { ok: false, errors: [], warnings: [], message: 'plan not found' };
     const zoneDef = plan.zoneId ? this.world.state.zones.find((z) => z.id === plan.zoneId) : undefined;
-    const zone = zoneDef ? makeZone(this.world, zoneDef.id, zoneDef.name, zoneDef) : undefined;
+    const zone = zoneDef && !plan.outsideZone ? makeZone(this.world, zoneDef.id, zoneDef.name, zoneDef) : undefined;
     const { result, world } = tryPatch(this.world, plan.ops, { zone });
     if (result.ok) {
       this.world = world;

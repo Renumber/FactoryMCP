@@ -1,6 +1,6 @@
-import type { Inventory, RefactorPlan } from '@factorymcp/sim';
+import { ENTITY_DEFS, type EntitySummary, type Inventory, type RefactorPlan } from '@factorymcp/sim';
 import { useGame } from '../game/context.ts';
-import { fmt, itemColor, itemName } from './labels.ts';
+import { fmt, itemColor, itemName, recipeName } from './labels.ts';
 
 const STATUS_STYLE: Record<RefactorPlan['status'], string> = {
   pending: 'bg-indigo-500/20 text-indigo-300',
@@ -56,6 +56,52 @@ function RateTable({ before, after }: { before: Inventory; after: Inventory }) {
   );
 }
 
+function ChangeList({ plan }: { plan: RefactorPlan }) {
+  const outside = new Set(plan.outsideZone?.entityIds ?? []);
+  const rows: { key: string; sign: string; tone: string; text: string; outside: boolean }[] = [];
+  const groups: [EntitySummary[], string, string][] = [
+    [plan.changes.added, '+', 'text-blue-300'],
+    [plan.changes.removed, '−', 'text-red-300'],
+    [plan.changes.modified, '~', 'text-amber-300'],
+  ];
+  for (const [list, sign, tone] of groups) {
+    const transport = list.filter((c) => ENTITY_DEFS[c.type].category === 'transport');
+    for (const c of list) {
+      if (ENTITY_DEFS[c.type].category === 'transport') continue;
+      const recipe = c.recipe ? ` · ${recipeName(c.recipe)}` : '';
+      const verb = sign === '~' ? ` · 방향 ${c.dir}` : '';
+      rows.push({ key: `${sign}${c.id}`, sign, tone, text: `${ENTITY_DEFS[c.type].name}${recipe}${verb} (${c.x},${c.y})`, outside: outside.has(c.id) });
+    }
+    if (transport.length) {
+      const byType = new Map<string, EntitySummary[]>();
+      for (const c of transport) byType.set(c.type, [...(byType.get(c.type) ?? []), c]);
+      for (const [type, cs] of byType) {
+        const out = cs.filter((c) => outside.has(c.id)).length;
+        rows.push({
+          key: `${sign}${type}`,
+          sign,
+          tone,
+          text: `${ENTITY_DEFS[type as EntitySummary['type']].name} ×${cs.length}${out ? ` (구역 밖 ${out})` : ''}`,
+          outside: false,
+        });
+      }
+    }
+  }
+  if (!rows.length) return null;
+  return (
+    <ul className="mt-2 space-y-0.5">
+      {rows.map((r) => (
+        <li key={r.key} className="flex gap-1.5">
+          <span className={`w-3 shrink-0 font-semibold ${r.tone}`}>{r.sign}</span>
+          <span className="text-gray-300">{r.text}</span>
+          {r.outside && <span className="text-orange-300">구역 밖</span>}
+        </li>
+      ))}
+      {plan.zoneId && !plan.outsideZone && <li className="text-gray-500">구역 {plan.zoneId} 안에서만 변경</li>}
+    </ul>
+  );
+}
+
 function PlanCard({ plan }: { plan: RefactorPlan }) {
   const game = useGame();
   const previewing = game.previewPlanId === plan.id;
@@ -85,11 +131,13 @@ function PlanCard({ plan }: { plan: RefactorPlan }) {
         </div>
       )}
 
-      <div className="mt-2 text-gray-500">
-        <span className="text-blue-300">+{plan.changes.added.length}</span> 추가 · <span className="text-red-300">-{plan.changes.removed.length}</span> 철거
-        {plan.changes.modified.length ? ` · ${plan.changes.modified.length} 변경` : ''}
-        {plan.zoneId ? ` · 구역 ${plan.zoneId}` : ''}
-      </div>
+      <ChangeList plan={plan} />
+      {plan.outsideZone && (
+        <div className="mt-2 rounded-md border border-orange-400/40 bg-orange-400/10 p-2 text-orange-200">
+          ⚠ 구역 {plan.outsideZone.zoneId} 밖 변경 {plan.outsideZone.entityIds.length}건 (지도에 주황 테두리)
+          <div className="mt-0.5 text-orange-200/80">사유: {plan.outsideZone.reason}</div>
+        </div>
+      )}
       {[...plan.portRegressions, ...plan.warnings].map((w) => (
         <div key={w} className="mt-1 text-amber-300">
           ⚠ {w}

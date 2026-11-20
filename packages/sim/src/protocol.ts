@@ -21,6 +21,8 @@ export interface RefactorPlan {
   delta?: SimulatePatchResult['delta'];
   warnings: string[];
   portRegressions: string[];
+  /** Set when a zone-scoped plan was allowed to change entities outside its zone. */
+  outsideZone?: { zoneId: string; reason: string; entityIds: number[] };
 }
 
 export interface AgentLogEntry {

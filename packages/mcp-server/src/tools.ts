@@ -5,6 +5,7 @@ import {
   RECIPES,
   TIER_GOALS,
   ASCII_LEGEND,
+  changesOutside,
   inspect,
   makeZone,
   measure,
@@ -253,14 +254,32 @@ export function createMcpServer(bridge: SessionBridge, token: string | null): Mc
         title: z.string().max(80),
         rationale: z.string().max(2000).describe('Why this layout, what it improves, trade-offs and prerequisites.'),
         ops: opsSchema,
-        zone_id: zoneId,
+        zone_id: zoneId.describe('Required when the player asked about a zone. Edits must stay inside it unless allow_outside_zone.'),
+        allow_outside_zone: z
+          .boolean()
+          .optional()
+          .describe('Only if the goal is impossible inside the zone. The player sees every outside change flagged.'),
+        outside_reason: z.string().max(300).optional().describe('Required with allow_outside_zone: why the zone alone is not enough.'),
       },
     },
-    tool('propose_refactor', (a) => `제안: ${a.title}`, async (a: { title: string; rationale: string; ops: PatchOp[]; zone_id?: string }) => {
+    tool(
+      'propose_refactor',
+      (a) => `제안: ${a.title}`,
+      async (a: {
+        title: string;
+        rationale: string;
+        ops: PatchOp[];
+        zone_id?: string;
+        allow_outside_zone?: boolean;
+        outside_reason?: string;
+      }) => {
       const { sessionId, world } = await loadWorld();
       const zone = findZone(world, a.zone_id);
-      const res = simulatePatch(world, a.ops, { zone });
+      const outside = !!(zone && a.allow_outside_zone);
+      if (outside && !a.outside_reason) return fail('allow_outside_zone needs outside_reason.');
+      const res = simulatePatch(world, a.ops, { zone, enforceZone: !outside });
       if (!res.ok) return text(json({ ok: false, errors: res.errors, hint: 'Fix the patch with simulate_patch first.' }));
+      const outsideIds = zone && outside ? changesOutside(res.changes, zone).map((c) => c.id) : [];
       const plan: RefactorPlan = {
         id: randomUUID().slice(0, 8),
         title: a.title,
@@ -275,6 +294,7 @@ export function createMcpServer(bridge: SessionBridge, token: string | null): Mc
         delta: res.delta,
         warnings: res.warnings,
         portRegressions: res.portRegressions ?? [],
+        outsideZone: zone && outsideIds.length ? { zoneId: zone.id, reason: a.outside_reason!, entityIds: outsideIds } : undefined,
       };
       bridge.savePlan(sessionId, plan);
       await bridge.call(sessionId, 'show_plan', { plan });
@@ -287,9 +307,11 @@ export function createMcpServer(bridge: SessionBridge, token: string | null): Mc
           delta: plan.delta,
           portRegressions: plan.portRegressions,
           warnings: plan.warnings,
+          outsideZoneChanges: outsideIds.length || undefined,
         }),
       );
-    }),
+      },
+    ),
   );
 
   server.registerTool(

@@ -120,6 +120,29 @@ describe('mcp tools', () => {
     expect(plans[0].status).toBe('pending');
   });
 
+  it('keeps zone plans inside the zone unless explicitly allowed', async () => {
+    const bridge = new FakeBridge();
+    const client = await connect(bridge);
+    const ops = [{ op: 'place', type: 'belt', x: 0, y: 0, dir: 'E' }];
+    const strict = JSON.parse(
+      textOf(await client.callTool({ name: 'propose_refactor', arguments: { title: 't', rationale: 'r', ops, zone_id: 'z1' } })),
+    );
+    expect(strict.errors[0].code).toBe('outside_zone');
+
+    const noReason = await client.callTool({
+      name: 'propose_refactor',
+      arguments: { title: 't', rationale: 'r', ops, zone_id: 'z1', allow_outside_zone: true },
+    });
+    expect(noReason.isError).toBe(true);
+
+    await client.callTool({
+      name: 'propose_refactor',
+      arguments: { title: 't', rationale: 'r', ops, zone_id: 'z1', allow_outside_zone: true, outside_reason: 'bottleneck downstream' },
+    });
+    expect(bridge.shown[0]!.outsideZone).toMatchObject({ zoneId: 'z1', reason: 'bottleneck downstream' });
+    expect(bridge.shown[0]!.outsideZone!.entityIds).toHaveLength(1);
+  });
+
   it('rejects malformed ops at the schema level', async () => {
     const client = await connect(new FakeBridge());
     const res = await client.callTool({ name: 'simulate_patch', arguments: { ops: [{ op: 'explode', x: 1, y: 1 }] } });

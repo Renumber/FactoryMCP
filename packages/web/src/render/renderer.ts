@@ -205,6 +205,24 @@ export class Renderer {
         label.position.set(z.x * TILE + 4, z.y * TILE - 18);
         this.overlayLabels.addChild(label);
       }
+      if (plan) {
+        const tagged = [
+          ...plan.changes.added.map((c) => ({ c, prefix: '+ ', color: 0x9cc2ff })),
+          ...plan.changes.removed.map((c) => ({ c, prefix: '− ', color: 0xffa3a3 })),
+          ...plan.changes.modified.map((c) => ({ c, prefix: '~ ', color: 0xffe08a })),
+        ];
+        for (const { c, prefix, color } of tagged) {
+          if (ENTITY_DEFS[c.type].category === 'transport') continue;
+          const n = ENTITY_DEFS[c.type].size;
+          const recipe = c.recipe ? `\n${RECIPE_SHORT[c.recipe] ?? c.recipe}` : '';
+          const t = makeText(`${prefix}${ENTITY_DEFS[c.type].name}${recipe}`, n === 1 ? 9 : 11, color);
+          t.anchor.set(0.5);
+          t.style.align = 'center';
+          t.style.stroke = { color: 0x0b0d12, width: 3 };
+          t.position.set((c.x + n / 2) * TILE, (c.y + n / 2) * TILE);
+          this.overlayLabels.addChild(t);
+        }
+      }
     }
 
     for (const z of w.state.zones) {
@@ -232,6 +250,14 @@ export class Renderer {
       for (const m of plan.changes.modified) {
         const n = ENTITY_DEFS[m.type].size;
         g.rect(m.x * TILE + 1, m.y * TILE + 1, n * TILE - 2, n * TILE - 2).stroke({ width: 2, color: 0xf5c542 });
+      }
+      if (plan.outsideZone) {
+        const ids = new Set(plan.outsideZone.entityIds);
+        for (const c of [...plan.changes.added, ...plan.changes.removed, ...plan.changes.modified]) {
+          if (!ids.has(c.id)) continue;
+          const n = ENTITY_DEFS[c.type].size;
+          g.rect(c.x * TILE + 4, c.y * TILE + 4, n * TILE - 8, n * TILE - 8).stroke({ width: 1.5, color: 0xff9f43 });
+        }
       }
     }
 
@@ -346,6 +372,7 @@ export class Renderer {
       const cell = this.cellAt(e.clientX, e.clientY);
       this.hover = cell;
       const d = this.drag;
+      game.setHover(d ? null : { ...cell, sx: e.clientX, sy: e.clientY });
       if (!d) return;
       if (d.kind === 'pan') {
         const dx = e.clientX - d.sx;
@@ -358,6 +385,7 @@ export class Renderer {
 
     on(canvas, 'pointerleave', () => {
       this.hover = null;
+      game.setHover(null);
     });
 
     on(canvas, 'pointerup', () => {

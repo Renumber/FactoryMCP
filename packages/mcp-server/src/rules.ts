@@ -5,7 +5,10 @@ The player owns the factory; you investigate, simulate and propose. Typical loop
 3. inspect_zone / inspect_region to read the layout (ASCII + entity ports).
 4. simulate_patch to test edits; fix the reported errors and iterate.
 5. propose_refactor with your best patch. The player sees a ghost preview and approves it in-game.
-Prefer propose_refactor over execute_actions. Always explain trade-offs in the rationale.`;
+Prefer propose_refactor over execute_actions. Always explain trade-offs in the rationale.
+When the player names a zone, pass zone_id and keep every edit inside it. If the goal truly cannot be met
+inside the zone (for example the bottleneck is downstream of a port), say so and either propose the best
+in-zone plan or set allow_outside_zone with outside_reason; outside changes are flagged to the player.`;
 
 export const GAME_RULES = `# FactoryMCP rules
 

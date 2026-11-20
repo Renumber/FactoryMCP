@@ -379,7 +379,10 @@ export function measure(world: World, opts: MeasureOptions = {}): Metrics {
 
 // --------------------------------------------------------- simulate_patch
 
-export interface SimulatePatchOptions extends MeasureOptions {}
+export interface SimulatePatchOptions extends MeasureOptions {
+  /** When false, the zone is only used for measurement and edits may leave it. Defaults to true. */
+  enforceZone?: boolean;
+}
 
 export interface SimulatePatchResult extends PatchResult {
   before?: Metrics;
@@ -402,7 +405,7 @@ function diffInv(a: Inventory, b: Inventory): Inventory {
 
 export function simulatePatch(world: World, ops: PatchOp[], opts: SimulatePatchOptions = {}): SimulatePatchResult & { world?: World } {
   const copy = world.clone();
-  const result = applyPatch(copy, ops, { zone: opts.zone });
+  const result = applyPatch(copy, ops, { zone: opts.enforceZone === false ? undefined : opts.zone });
   if (!result.ok) return result;
   const before = measure(world, opts);
   const after = measure(copy, opts);

@@ -4,6 +4,7 @@ import { GameContext } from './game/context.ts';
 import { GameController } from './game/controller.ts';
 import { Renderer } from './render/renderer.ts';
 import { AgentPanel } from './ui/AgentPanel.tsx';
+import { HoverTooltip } from './ui/HoverTooltip.tsx';
 import { HubBar } from './ui/HubBar.tsx';
 import { Inspector } from './ui/Inspector.tsx';
 import { Palette } from './ui/Palette.tsx';
@@ -81,6 +82,7 @@ export function App() {
             <div ref={canvasRef} className="absolute inset-0" />
             <HubBar />
             <Toasts />
+            <HoverTooltip />
           </div>
           <aside className="flex w-[340px] shrink-0 flex-col border-l border-gray-800 bg-gray-900">
             <div className="flex border-b border-gray-800 text-sm">
